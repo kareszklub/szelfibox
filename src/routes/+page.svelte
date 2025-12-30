@@ -1,8 +1,10 @@
 <script lang="ts">
-    import VideoCanvas from "../lib/components/VideoCanvas.svelte";
-    import { box } from "../lib/state.svelte";
+    import VideoCanvas from "$lib/components/VideoCanvas.svelte";
+    import { box } from "$lib/state.svelte";
+    import imageData from "$lib/components/VideoCanvas.svelte";
 
-    import { Spinner } from "$lib/components/ui/spinner/index.js";
+    let countdown: number | null = $state(null);
+    let videoCanvas: VideoCanvas | null = $state(null);
 
     const onKeyDown = (e: KeyboardEvent) => {
         if (e.key === "a") {
@@ -13,11 +15,25 @@
     };
 
     const onLeftButtonDown = () => {
+        if (countdown) return;
         console.log("[Left] button pressed");
         if (box.stage === 1) {
             box.stage = 2;
         } else if (box.stage === 2) {
-            console.log("Csinálom a képet, csíz!");
+            box.freeze = false;
+            countdown = 3;
+            let clear = setInterval(() => {
+                if (!countdown) return;
+                countdown--;
+                if (countdown === 0) {
+                    countdown = null;
+                    clearInterval(clear);
+
+                    console.log("Csinálom a képet, csíz!");
+                    box.freeze = true;
+                    box.imageData = videoCanvas!.getImageData();
+                }
+            }, 1000);
         } else if (box.stage === 3) {
             box.stage = 4;
         } else if (box.stage === 4) {
@@ -29,6 +45,7 @@
     };
 
     const onRightButtonDown = () => {
+        if (countdown) return;
         console.log("[Right] button pressed");
         if (box.stage === 1) {
             box.stage = 2;
@@ -52,11 +69,25 @@
 {:else}
     <div class="flex">
         <div class="flex-1 flex justify-center">
-            <VideoCanvas width={640} height={480} />
+            <div class="relative">
+                {#if countdown}
+                    <div
+                        class="absolute inset-0 z-10 text-white text-8xl drop-shadow-lg flex justify-center"
+                    >
+                        <p>{countdown}</p>
+                    </div>
+                {/if}
+                <div class="relative">
+                    <VideoCanvas
+                        bind:this={videoCanvas}
+                        width={640}
+                        height={480}
+                    />
+                </div>
+            </div>
         </div>
         <div class="flex-1">
             {#if box.stage === 2}
-                <Spinner />
                 <p>Bal gomb: új kép Jobb gomb: kész :)</p>
             {:else if box.stage === 3}
                 <p>Itt egy QR kód, Mindkét gomb: tovább</p>
