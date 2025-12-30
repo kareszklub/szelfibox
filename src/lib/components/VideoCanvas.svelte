@@ -5,8 +5,8 @@
 
     let canvas: HTMLCanvasElement | null = null;
     let ctx: CanvasRenderingContext2D | null = null;
-    const width = 640;
-    const height = 480;
+
+    const { width, height } = $props();
 
     onMount(async () => {
         ctx = canvas!.getContext("2d");
