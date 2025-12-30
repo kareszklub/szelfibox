@@ -2,6 +2,8 @@
     import VideoCanvas from "../lib/components/VideoCanvas.svelte";
     import { box } from "../lib/state.svelte";
 
+    import { Spinner } from "$lib/components/ui/spinner/index.js";
+
     const onKeyDown = (e: KeyboardEvent) => {
         if (e.key === "a") {
             onLeftButtonDown();
@@ -54,6 +56,7 @@
         </div>
         <div class="flex-1">
             {#if box.stage === 2}
+                <Spinner />
                 <p>Bal gomb: új kép Jobb gomb: kész :)</p>
             {:else if box.stage === 3}
                 <p>Itt egy QR kód, Mindkét gomb: tovább</p>
