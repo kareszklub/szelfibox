@@ -3,8 +3,11 @@ use base64::Engine;
 use gstreamer as gst;
 use gstreamer::prelude::*;
 use gstreamer_app as gst_app;
+use std::sync::atomic::{AtomicBool, Ordering};
 
 use tauri::Emitter;
+
+static BUSY: AtomicBool = AtomicBool::new(false);
 
 pub fn start_camera(app: tauri::AppHandle) {
     gst::init().unwrap();
@@ -29,7 +32,16 @@ pub fn start_camera(app: tauri::AppHandle) {
                 let map = buffer.map_readable().unwrap();
                 let bytes = map.as_slice();
                 let encoded = STANDARD.encode(bytes);
-                app.emit("frame", encoded).unwrap();
+
+                if BUSY.swap(true, Ordering::Relaxed) {
+                    return Ok(gst::FlowSuccess::Ok);
+                }
+                let app = app.clone();
+                tauri::async_runtime::spawn(async move {
+                    let _ = app.emit("frame", encoded);
+                    BUSY.store(false, Ordering::Relaxed);
+                });
+
                 Ok(gst::FlowSuccess::Ok)
             })
             .build(),
