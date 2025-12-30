@@ -50,6 +50,11 @@
         if (box.stage === 1) {
             box.stage = 2;
         } else if (box.stage === 2) {
+            // TODO: handle this in a more human way
+            if (!box.imageData) {
+                console.error("Először csinálj egy képet!");
+                return;
+            }
             box.stage = 3;
         } else if (box.stage === 3) {
             box.stage = 4;
