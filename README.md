@@ -1,1 +1,1 @@
-straight up selfing it, and by it lets just say my box
+straight up "selfing it". and by "it", haha, well. let's justr say. My box
