@@ -2,11 +2,6 @@ mod gst_cam;
 
 // Learn more about Tauri commands at https://tauri.app/develop/calling-rust/
 #[tauri::command]
-fn greet(name: &str) -> String {
-    format!("Hello, {}! You've been greeted from Rust!", name)
-}
-
-#[tauri::command]
 fn start_stream(app: tauri::AppHandle) {
     std::thread::spawn(move || {
         gst_cam::start_camera(app);
@@ -17,7 +12,7 @@ fn start_stream(app: tauri::AppHandle) {
 pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_opener::init())
-        .invoke_handler(tauri::generate_handler![greet, start_stream])
+        .invoke_handler(tauri::generate_handler![start_stream])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }
