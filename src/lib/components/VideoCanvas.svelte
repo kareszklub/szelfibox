@@ -1,5 +1,5 @@
+<!-- NOTE: this should be treated as a singleton, backend support currently only works for one instance of this component -->
 <script lang="ts">
-    import { invoke } from "@tauri-apps/api/core";
     import { listen, type UnlistenFn } from "@tauri-apps/api/event";
     import { onMount, onDestroy } from "svelte";
     import { box } from "$lib/state.svelte";
@@ -37,8 +37,6 @@
 
             busy = false;
         });
-
-        await invoke("start_stream");
     });
 
     onDestroy(async () => {
@@ -47,7 +45,7 @@
             unlisten = null;
         }
 
-        await invoke("stop_stream");
+        box.freeze = false;
     });
 </script>
 

@@ -1,10 +1,23 @@
 <script lang="ts">
     import VideoCanvas from "$lib/components/VideoCanvas.svelte";
     import { box } from "$lib/state.svelte";
-    import imageData from "$lib/components/VideoCanvas.svelte";
+    import { invoke } from "@tauri-apps/api/core";
 
     let countdown: number | null = $state(null);
     let videoCanvas: VideoCanvas | null = $state(null);
+
+    // you get back a blob URL for the corresponding QR code
+    export async function sendImage(image: ImageData): Promise<string> {
+        const bytes = await invoke<number[]>("process_image", {
+            width: image.width,
+            height: image.height,
+            data: Array.from(image.data),
+        });
+
+        const blob = new Blob([new Uint8Array(bytes)], { type: "image/png" });
+
+        return URL.createObjectURL(blob);
+    }
 
     const onKeyDown = (e: KeyboardEvent) => {
         if (e.key === "a") {
@@ -22,7 +35,7 @@
         } else if (box.stage === 2) {
             box.freeze = false;
             countdown = 3;
-            let clear = setInterval(() => {
+            let clear = setInterval(async () => {
                 if (!countdown) return;
                 countdown--;
                 if (countdown === 0) {
@@ -32,12 +45,15 @@
                     console.log("Csinálom a képet, csíz!");
                     box.freeze = true;
                     box.imageData = videoCanvas!.getImageData();
+                    box.qrBlobURL = await sendImage(box.imageData);
                 }
             }, 1000);
         } else if (box.stage === 3) {
             box.stage = 4;
         } else if (box.stage === 4) {
             console.log("Indítom a nyomtatást");
+            box.imageData = null;
+            URL.revokeObjectURL(box.qrBlobURL!);
             box.stage = 1;
         } else {
             throw new Error("Unreachable");
@@ -59,6 +75,7 @@
         } else if (box.stage === 3) {
             box.stage = 4;
         } else if (box.stage === 4) {
+            box.imageData = null;
             box.stage = 1;
         } else {
             throw new Error("Unreachable");
@@ -85,8 +102,8 @@
                 <div class="relative">
                     <VideoCanvas
                         bind:this={videoCanvas}
-                        width={640}
-                        height={480}
+                        width={960}
+                        height={640}
                     />
                 </div>
             </div>
@@ -96,6 +113,7 @@
                 <p>Bal gomb: új kép Jobb gomb: kész :)</p>
             {:else if box.stage === 3}
                 <p>Itt egy QR kód, Mindkét gomb: tovább</p>
+                <img src={box.qrBlobURL} alt="Bollocks" />
             {:else}
                 <p>Bal gomb: nyomtatás, Jobb gomb: nem kérem</p>
             {/if}

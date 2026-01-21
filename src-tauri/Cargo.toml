@@ -23,8 +23,18 @@ tauri-plugin-opener = "2"
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 
-
 gstreamer = "0.23"
 gstreamer-video = "0.23"
 gstreamer-app = "0.23"
 base64 = "0.22.1"
+
+axum = "0.6"
+tokio = { version = "1", features = ["full"] }
+tower = "0.4"
+
+log = "0.4.29"
+simple_logger = "5.1.0"
+
+xxhash-rust = { version = "0.8.15", features = ["xxh3"] }
+image = "0.25.9"
+qrcode = "0.14.1"

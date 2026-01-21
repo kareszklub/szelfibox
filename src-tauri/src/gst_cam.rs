@@ -13,9 +13,14 @@ pub fn start_camera(app: tauri::AppHandle) {
     gst::init().unwrap();
 
     let pipeline = gstreamer::parse::launch(
-        "v4l2src device=/dev/video0 ! videoconvert ! video/x-raw,format=RGBA ! appsink name=sink",
+        "v4l2src device=/dev/video0 \
+     ! videoconvert \
+     ! videoscale \
+     ! video/x-raw,format=RGBA,width=960,height=640 \
+     ! appsink name=sink",
     )
     .unwrap();
+
     let pipeline = pipeline.downcast::<gst::Pipeline>().unwrap();
 
     let appsink = pipeline
@@ -36,6 +41,7 @@ pub fn start_camera(app: tauri::AppHandle) {
                 if BUSY.swap(true, Ordering::Relaxed) {
                     return Ok(gst::FlowSuccess::Ok);
                 }
+
                 let app = app.clone();
                 tauri::async_runtime::spawn(async move {
                     let _ = app.emit("frame", encoded);
