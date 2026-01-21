@@ -8,6 +8,7 @@ use qrcode::QrCode;
 use xxhash_rust::xxh3::xxh3_128;
 
 mod axum;
+mod button;
 mod gst_cam;
 
 #[tauri::command]
@@ -42,6 +43,10 @@ pub fn run() {
     simple_logger::init_with_level(log::Level::Info).unwrap();
 
     fs::create_dir_all(&Path::new("../static/images")).expect("failed to create static directory");
+
+    tauri::async_runtime::spawn(async {
+        button::look_for_buttonpress();
+    });
 
     tauri::async_runtime::spawn(async {
         run_server().await;

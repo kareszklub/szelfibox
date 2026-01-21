@@ -38,3 +38,4 @@ simple_logger = "5.1.0"
 xxhash-rust = { version = "0.8.15", features = ["xxh3"] }
 image = "0.25.9"
 qrcode = "0.14.1"
+rppal = "0.22.1"
