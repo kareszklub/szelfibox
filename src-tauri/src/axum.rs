@@ -23,7 +23,7 @@ pub async fn run_server() {
 }
 
 async fn serve_jpg(Path(name): Path<String>) -> Response {
-    let mut path = PathBuf::from("../static");
+    let mut path = PathBuf::from("../static/images");
     path.push(format!("{}.png", name));
 
     if !path.exists() {

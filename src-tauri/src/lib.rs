@@ -1,4 +1,4 @@
-use std::io::Cursor;
+use std::{fs, io::Cursor, path::Path};
 
 use crate::axum::run_server;
 
@@ -19,7 +19,7 @@ fn process_image(width: u32, height: u32, data: Vec<u8>) -> Vec<u8> {
     let img =
         ImageBuffer::<Rgba<u8>, _>::from_raw(width, height, data).expect("invalid RGBA buffer");
 
-    let path = format!("../static/{}.png", hash);
+    let path = format!("../static/images/{}.png", hash);
     img.save_with_format(path, image::ImageFormat::Png)
         .expect("failed to save PNG");
 
@@ -40,6 +40,8 @@ fn process_image(width: u32, height: u32, data: Vec<u8>) -> Vec<u8> {
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     simple_logger::init_with_level(log::Level::Info).unwrap();
+
+    fs::create_dir_all(&Path::new("../static/images")).expect("failed to create static directory");
 
     tauri::async_runtime::spawn(async {
         run_server().await;
