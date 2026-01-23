@@ -2,9 +2,19 @@
     import VideoCanvas from "$lib/components/VideoCanvas.svelte";
     import { box } from "$lib/state.svelte";
     import { invoke } from "@tauri-apps/api/core";
+    import { listen, UnlistenFn } from "@tauri-apps/api/event";
+    import { onMount } from "svelte";
 
     let countdown: number | null = $state(null);
     let videoCanvas: VideoCanvas | null = $state(null);
+
+    let unlisten: UnlistenFn | null = null;
+
+    onMount(async () => {
+        unlisten = await listen<number>("button", (event: any) => {
+            console.log(event.payload);
+        });
+    });
 
     // you get back a blob URL for the corresponding QR code
     export async function sendImage(image: ImageData): Promise<string> {

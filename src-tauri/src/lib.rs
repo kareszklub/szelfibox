@@ -55,11 +55,18 @@ pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_opener::init())
         .setup(|app| {
-            let app_handle = app.handle().clone();
-
-            std::thread::spawn(move || {
-                gst_cam::start_camera(app_handle);
-            });
+            {
+                let app_handle = app.handle().clone();
+                std::thread::spawn(move || {
+                    gst_cam::start_camera(app_handle);
+                });
+            }
+            {
+                let app_handle = app.handle().clone();
+                std::thread::spawn(|| {
+                    run_buttons(app_handle);
+                });
+            }
 
             Ok(())
         })
