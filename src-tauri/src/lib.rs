@@ -1,6 +1,6 @@
 use std::{fs, io::Cursor, path::Path};
 
-use crate::axum::run_server;
+use crate::{axum::run_server, buttons::run_buttons};
 
 use base64::{prelude::BASE64_URL_SAFE_NO_PAD, Engine};
 use image::{ImageBuffer, Luma, Rgba};
@@ -8,6 +8,7 @@ use qrcode::QrCode;
 use xxhash_rust::xxh3::xxh3_128;
 
 mod axum;
+mod buttons;
 mod gst_cam;
 
 #[tauri::command]
@@ -45,6 +46,10 @@ pub fn run() {
 
     tauri::async_runtime::spawn(async {
         run_server().await;
+    });
+
+    tauri::async_runtime::spawn(async {
+        run_buttons();
     });
 
     tauri::Builder::default()
