@@ -2,17 +2,15 @@
     import VideoCanvas from "$lib/components/VideoCanvas.svelte";
     import { box } from "$lib/state.svelte";
     import { invoke } from "@tauri-apps/api/core";
-    import { listen, UnlistenFn } from "@tauri-apps/api/event";
+    import { listen } from "@tauri-apps/api/event";
     import { onMount } from "svelte";
 
     let countdown: number | null = $state(null);
     let videoCanvas: VideoCanvas | null = $state(null);
 
-    let unlisten: UnlistenFn | null = null;
-
     onMount(async () => {
-        unlisten = await listen<number>("button", (event: any) => {
-            console.log(event.payload);
+        await listen<number>("button", (event: any) => {
+            console.log(event.payload, "\n", parseInt(event.payload));
         });
     });
 
