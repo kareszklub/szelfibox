@@ -10,7 +10,11 @@
 
     onMount(async () => {
         await listen<number>("button", (event: any) => {
-            console.log(event.payload, "\n", parseInt(event.payload));
+            if (parseInt(event.payload) == 1) {
+                onLeftButtonDown();
+            } else {
+                onRightButtonDown();
+            }
         });
     });
 
