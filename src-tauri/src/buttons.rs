@@ -24,4 +24,7 @@ pub fn run_buttons() {
             },
         )
         .unwrap();
+    loop {
+        thread::sleep(Duration::from_secs(1));
+    }
 }
