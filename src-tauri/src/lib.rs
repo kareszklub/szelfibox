@@ -48,10 +48,6 @@ pub fn run() {
         run_server().await;
     });
 
-    tauri::async_runtime::spawn(async {
-        run_buttons();
-    });
-
     tauri::Builder::default()
         .plugin(tauri_plugin_opener::init())
         .setup(|app| {
