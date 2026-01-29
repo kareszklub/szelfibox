@@ -5,6 +5,20 @@
     import { listen } from "@tauri-apps/api/event";
     import { onMount } from "svelte";
 
+    import * as Card from "$lib/components/ui/card";
+    import { Button } from "$lib/components/ui/button";
+    import { Badge } from "$lib/components/ui/badge";
+
+    import {
+        Camera,
+        Printer,
+        Ban,
+        Check,
+        ArrowRight,
+        QrCode,
+        Play,
+    } from "lucide-svelte";
+
     let countdown: number | null = $state(null);
     let videoCanvas: VideoCanvas | null = $state(null);
 
@@ -27,7 +41,6 @@
         });
 
         const blob = new Blob([new Uint8Array(bytes)], { type: "image/png" });
-
         return URL.createObjectURL(blob);
     }
 
@@ -78,7 +91,6 @@
         if (box.stage === 1) {
             box.stage = 2;
         } else if (box.stage === 2) {
-            // TODO: handle this in a more human way
             if (!box.imageData) {
                 console.error("Először csinálj egy képet!");
                 return;
@@ -95,40 +107,177 @@
     };
 </script>
 
-<svelte:window on:keydown={onKeyDown} />
-{#if box.stage === 1}
-    <div class="flex justify-center">
-        <h1 class="text-3xl">A kezdéshez nyomd meg az egyik gombot</h1>
-    </div>
-{:else}
-    <div class="flex">
-        <div class="flex-1 flex justify-center">
-            <div class="relative">
-                {#if countdown}
+<svelte:window onkeydown={onKeyDown} />
+
+<div class="w-full max-w-5xl mx-auto">
+    {#if box.stage === 1}
+        <Card.Root class="text-center shadow-lg border-2">
+            <Card.Header class="py-16">
+                <Card.Title class="text-6xl font-extrabold text-primary mb-4"
+                    >Szia!</Card.Title
+                >
+                <Card.Description class="text-2xl">
+                    A kezdéshez nyomd meg az egyik gombot.
+                </Card.Description>
+            </Card.Header>
+            <Card.Content class="flex justify-center pb-12">
+                <Button
+                    size="lg"
+                    class="text-xl px-8 py-8 animate-pulse"
+                    onclick={() => (box.stage = 2)}
+                >
+                    <Play class="mr-2 h-6 w-6" /> Indítás
+                </Button>
+            </Card.Content>
+        </Card.Root>
+    {:else}
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <div class="lg:col-span-2">
+                <Card.Root
+                    class="overflow-hidden shadow-md h-full flex flex-col justify-center bg-black/5 relative"
+                >
+                    {#if countdown}
+                        <div
+                            class="absolute inset-0 z-50 flex items-center justify-center"
+                        >
+                            <p
+                                class="text-[10rem] font-bold text-white drop-shadow-2xl animate-bounce"
+                            >
+                                {countdown}
+                            </p>
+                        </div>
+                    {/if}
+
                     <div
-                        class="absolute inset-0 z-10 text-white text-8xl drop-shadow-lg flex justify-center"
+                        class="p-2 flex justify-center items-center h-full min-h-[480px]"
                     >
-                        <p>{countdown}</p>
+                        {#if box.stage === 3}
+                            <div
+                                class="text-center bg-white p-8 rounded-xl shadow-sm"
+                            >
+                                {#if box.qrBlobURL}
+                                    <img
+                                        src={box.qrBlobURL}
+                                        alt="QR Code"
+                                        class="w-64 h-64 object-contain mx-auto"
+                                    />
+                                {:else}
+                                    <div
+                                        class="w-64 h-64 flex items-center justify-center"
+                                    >
+                                        <QrCode
+                                            class="h-16 w-16 text-muted-foreground animate-spin"
+                                        />
+                                    </div>
+                                {/if}
+                                <p class="mt-4 font-semibold text-lg">
+                                    Olvasd be a képet!
+                                </p>
+                            </div>
+                        {:else}
+                            <div
+                                class="relative rounded-lg overflow-hidden border-4 border-muted"
+                            >
+                                <VideoCanvas
+                                    bind:this={videoCanvas}
+                                    width={640}
+                                    height={480}
+                                />
+                            </div>
+                        {/if}
                     </div>
-                {/if}
-                <div class="relative">
-                    <VideoCanvas
-                        bind:this={videoCanvas}
-                        width={640}
-                        height={480}
-                    />
-                </div>
+                </Card.Root>
+            </div>
+
+            <div class="flex flex-col gap-4">
+                <Card.Root>
+                    <Card.Header>
+                        <Card.Title class="flex justify-between items-center">
+                            Instrukciók
+                            <Badge variant="outline" class="text-lg px-3">
+                                Lépés {box.stage} / 4
+                            </Badge>
+                        </Card.Title>
+                    </Card.Header>
+                    <Card.Content>
+                        <p class="text-xl font-medium leading-relaxed">
+                            {#if box.stage === 2}
+                                Készíts egy képet, és ha tetszik, menj tovább!
+                            {:else if box.stage === 3}
+                                Szkenneld be a QR kódot a telefonoddal a kép
+                                mentéséhez.
+                            {:else if box.stage === 4}
+                                Szeretnéd kinyomtatni a fényképet emlékbe?
+                            {/if}
+                        </p>
+                    </Card.Content>
+                </Card.Root>
+
+                <Card.Root
+                    class="flex-grow flex flex-col justify-center bg-muted/30"
+                >
+                    <Card.Header>
+                        <Card.Title>Gombok</Card.Title>
+                    </Card.Header>
+                    <Card.Content class="grid gap-4">
+                        <div
+                            class="flex items-center gap-4 p-4 border rounded-lg bg-background shadow-sm border-l-8 border-l-blue-500"
+                        >
+                            <div
+                                class="h-12 w-12 rounded-full bg-blue-500 flex items-center justify-center text-white font-bold text-xl shadow-inner"
+                            >
+                                L
+                            </div>
+                            <div class="flex-1">
+                                <p
+                                    class="text-sm text-muted-foreground uppercase font-bold tracking-wider"
+                                >
+                                    Bal Gomb
+                                </p>
+                                <p
+                                    class="text-xl font-bold flex items-center gap-2"
+                                >
+                                    {#if box.stage === 2}
+                                        <Camera class="h-5 w-5" /> Új kép
+                                    {:else if box.stage === 3}
+                                        <ArrowRight class="h-5 w-5" /> Tovább
+                                    {:else if box.stage === 4}
+                                        <Printer class="h-5 w-5" /> Nyomtatás
+                                    {/if}
+                                </p>
+                            </div>
+                        </div>
+
+                        <div
+                            class="flex items-center gap-4 p-4 border rounded-lg bg-background shadow-sm border-l-8 border-l-red-500"
+                        >
+                            <div
+                                class="h-12 w-12 rounded-full bg-red-500 flex items-center justify-center text-white font-bold text-xl shadow-inner"
+                            >
+                                R
+                            </div>
+                            <div class="flex-1">
+                                <p
+                                    class="text-sm text-muted-foreground uppercase font-bold tracking-wider"
+                                >
+                                    Jobb Gomb
+                                </p>
+                                <p
+                                    class="text-xl font-bold flex items-center gap-2"
+                                >
+                                    {#if box.stage === 2}
+                                        <Check class="h-5 w-5" /> Kész
+                                    {:else if box.stage === 3}
+                                        <ArrowRight class="h-5 w-5" /> Tovább
+                                    {:else if box.stage === 4}
+                                        <Ban class="h-5 w-5" /> Nem kérem
+                                    {/if}
+                                </p>
+                            </div>
+                        </div>
+                    </Card.Content>
+                </Card.Root>
             </div>
         </div>
-        <div class="flex-1">
-            {#if box.stage === 2}
-                <p>Bal gomb: új kép Jobb gomb: kész :)</p>
-            {:else if box.stage === 3}
-                <p>Itt egy QR kód, Mindkét gomb: tovább</p>
-                <img src={box.qrBlobURL} alt="Bollocks" />
-            {:else}
-                <p>Bal gomb: nyomtatás, Jobb gomb: nem kérem</p>
-            {/if}
-        </div>
-    </div>
-{/if}
+    {/if}
+</div>
