@@ -13,7 +13,7 @@ use tokio::io::AsyncReadExt;
 pub async fn run_server() {
     let app = Router::new().route("/:name", get(serve_jpg));
 
-    let addr = SocketAddr::from(([127, 0, 0, 1], 8000));
+    let addr = SocketAddr::from(([0, 0, 0, 0], 8000));
     info!("Axum server running at http://{}", addr);
 
     axum::Server::bind(&addr)
