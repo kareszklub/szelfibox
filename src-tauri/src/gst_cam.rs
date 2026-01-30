@@ -13,7 +13,7 @@ pub fn start_camera(app: tauri::AppHandle) {
     gst::init().unwrap();
 
     let pipeline = gstreamer::parse::launch(
-        "v4l2src device=/dev/video0 \
+        "v4l2src device=/dev/video4 \
      ! videoconvert \
      ! video/x-raw,format=RGBA,width=640,height=480 \
      ! appsink name=sink",
