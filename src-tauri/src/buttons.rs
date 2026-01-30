@@ -11,8 +11,8 @@ pub fn run_buttons(app: tauri::AppHandle) {
             return;
         }
     };
-    let mut button1 = gpio.get(2).unwrap().into_input_pullup();
-    let mut button2 = gpio.get(3).unwrap().into_input_pullup();
+    let mut button1 = gpio.get(3).unwrap().into_input_pullup();
+    let mut button2 = gpio.get(27).unwrap().into_input_pullup();
 
     {
         let app = app.clone();
