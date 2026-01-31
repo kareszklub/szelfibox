@@ -18,9 +18,10 @@
         QrCode,
         Play,
     } from "lucide-svelte";
+    import CameraStream from "$lib/components/CameraStream.svelte";
 
     let countdown: number | null = $state(null);
-    let videoCanvas: VideoCanvas | null = $state(null);
+    let cameraStream: CameraStream | null = $state(null);
 
     onMount(async () => {
         await listen<number>("button", (event: any) => {
@@ -34,6 +35,7 @@
 
     // you get back a blob URL for the corresponding QR code
     export async function sendImage(image: ImageData): Promise<string> {
+        console.log("Preparing to send image");
         const bytes = await invoke<number[]>("process_image", {
             width: image.width,
             height: image.height,
@@ -41,6 +43,7 @@
         });
 
         const blob = new Blob([new Uint8Array(bytes)], { type: "image/png" });
+        console.log("Sent image");
         return URL.createObjectURL(blob);
     }
 
@@ -69,8 +72,10 @@
 
                     console.log("Csinálom a képet, csíz!");
                     box.freeze = true;
-                    box.imageData = videoCanvas!.getImageData();
-                    box.qrBlobURL = await sendImage(box.imageData);
+                    let output = await cameraStream!.getImageData();
+                    box.imageData = output!.imageData;
+                    box.imageBlobURL = output!.blobUrl;
+                    box.qrBlobURL = await sendImage(box.imageData!);
                 }
             }, 1000);
         } else if (box.stage === 3) {
@@ -100,6 +105,7 @@
             box.stage = 4;
         } else if (box.stage === 4) {
             box.imageData = null;
+            box.imageBlobURL = null;
             box.stage = 1;
         } else {
             throw new Error("Unreachable");
@@ -178,11 +184,14 @@
                             <div
                                 class="relative rounded-lg overflow-hidden border-4 border-muted"
                             >
-                                <VideoCanvas
-                                    bind:this={videoCanvas}
-                                    width={640}
-                                    height={480}
-                                />
+                                {#if box.stage === 4}
+                                    <img
+                                        src={box.imageBlobURL}
+                                        alt="Captured"
+                                    />
+                                {:else}
+                                    <CameraStream bind:this={cameraStream} />
+                                {/if}
                             </div>
                         {/if}
                     </div>
@@ -221,10 +230,10 @@
                     </Card.Header>
                     <Card.Content class="grid gap-4">
                         <div
-                            class="flex items-center gap-4 p-4 border rounded-lg bg-background shadow-sm border-l-8 border-l-blue-500"
+                            class="flex items-center gap-4 p-4 border rounded-lg bg-background shadow-sm border-l-8 border-l-red-500"
                         >
                             <div
-                                class="h-12 w-12 rounded-full bg-blue-500 flex items-center justify-center text-white font-bold text-xl shadow-inner"
+                                class="h-12 w-12 rounded-full bg-red-500 flex items-center justify-center text-white font-bold text-xl shadow-inner"
                             >
                                 L
                             </div>
@@ -249,10 +258,10 @@
                         </div>
 
                         <div
-                            class="flex items-center gap-4 p-4 border rounded-lg bg-background shadow-sm border-l-8 border-l-red-500"
+                            class="flex items-center gap-4 p-4 border rounded-lg bg-background shadow-sm border-l-8 border-l-blue-500"
                         >
                             <div
-                                class="h-12 w-12 rounded-full bg-red-500 flex items-center justify-center text-white font-bold text-xl shadow-inner"
+                                class="h-12 w-12 rounded-full bg-blue-500 flex items-center justify-center text-white font-bold text-xl shadow-inner"
                             >
                                 R
                             </div>
