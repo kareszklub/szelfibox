@@ -16,6 +16,7 @@
     "@tailwindcss/vite": "^4.1.18",
     "@tauri-apps/api": "^2",
     "@tauri-apps/plugin-opener": "^2",
+    "jmuxer": "^2.1.0",
     "lucide-svelte": "^0.563.0",
     "tailwindcss": "^4.1.18"
   },
@@ -27,6 +28,7 @@
     "@sveltejs/vite-plugin-svelte": "^5.0.0",
     "@tailwindcss/vite": "^4.1.17",
     "@tauri-apps/cli": "^2",
+    "@types/jmuxer": "^2.0.7",
     "bits-ui": "^2.15.4",
     "clsx": "^2.1.1",
     "svelte": "^5.0.0",

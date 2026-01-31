@@ -1,5 +1,8 @@
+use std::process::Command;
 use std::{fs, io::Cursor, path::Path};
 
+use crate::img_utils::append_image_header;
+use crate::scrcpy::start_camera_stream;
 use crate::{axum::run_server, buttons::run_buttons};
 
 use base64::{prelude::BASE64_URL_SAFE_NO_PAD, Engine};
@@ -10,6 +13,8 @@ use xxhash_rust::xxh3::xxh3_128;
 mod axum;
 mod buttons;
 mod gst_cam;
+mod img_utils;
+mod scrcpy;
 
 #[tauri::command]
 fn process_image(width: u32, height: u32, data: Vec<u8>) -> Vec<u8> {
@@ -19,9 +24,10 @@ fn process_image(width: u32, height: u32, data: Vec<u8>) -> Vec<u8> {
 
     let img =
         ImageBuffer::<Rgba<u8>, _>::from_raw(width, height, data).expect("invalid RGBA buffer");
+    let img = append_image_header(img);
 
     let path = format!("../static/images/{}.png", hash);
-    img.save_with_format(path, image::ImageFormat::Png)
+    img.save_with_format(path.clone(), image::ImageFormat::Png)
         .expect("failed to save PNG");
 
     let qr_text = format!("http://127.0.0.1:8000/{}", hash);
@@ -51,12 +57,12 @@ pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_opener::init())
         .setup(|app| {
-            {
-                let app_handle = app.handle().clone();
-                std::thread::spawn(move || {
-                    gst_cam::start_camera(app_handle);
-                });
-            }
+            // {
+            //     let app_handle = app.handle().clone();
+            //     std::thread::spawn(move || {
+            //         gst_cam::start_camera(app_handle);
+            //     });
+            // }
             {
                 let app_handle = app.handle().clone();
                 std::thread::spawn(|| {
@@ -66,7 +72,7 @@ pub fn run() {
 
             Ok(())
         })
-        .invoke_handler(tauri::generate_handler![process_image])
+        .invoke_handler(tauri::generate_handler![process_image, start_camera_stream])
         .run(tauri::generate_context!())
         .expect("Error while running tauri application");
 }
