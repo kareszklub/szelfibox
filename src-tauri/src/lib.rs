@@ -1,7 +1,7 @@
-use std::process::Command;
 use std::{fs, io::Cursor, path::Path};
 
 use crate::img_utils::append_image_header;
+use crate::phone_utils::print_pic;
 use crate::scrcpy::start_camera_stream;
 use crate::{axum::run_server, buttons::run_buttons};
 
@@ -14,6 +14,7 @@ mod axum;
 mod buttons;
 mod gst_cam;
 mod img_utils;
+mod phone_utils;
 mod scrcpy;
 
 #[tauri::command]
