@@ -1,3 +1,4 @@
+use std::path::PathBuf;
 use std::{fs, io::Cursor, path::Path};
 
 use crate::img_utils::append_image_header;
@@ -51,10 +52,16 @@ pub fn run() {
     fs::create_dir_all(&Path::new("../static/images")).expect("failed to create static directory");
 
     let phone_picture_dir = phone_utils::get_phone_picture_dir();
+    let pi_picture_dir = PathBuf::from("../static/images");
+
     println!(
         "Pictures will be stored at: {:?}",
         phone_picture_dir.display()
     );
+
+    let test_pic = pi_picture_dir.join("test.jpg");
+
+    // phone_utils::print_pic(&test_pic, &phone_picture_dir);
 
     tauri::async_runtime::spawn(async {
         run_server().await;

@@ -22,22 +22,34 @@ pub fn get_phone_picture_dir() -> PathBuf {
     println!("phone found at path: {:?}", phone_path.display());
     create_dir_all(phone_path.clone().join("Pictures/szelfibox"))
         .expect("failed to create static directory");
-    phone_path.clone().join("Pictures/szelfibox")
+    phone_path.join("Pictures/szelfibox")
 }
 
-pub fn send_picture(img: &PathBuf) {}
+fn send_picture(img: &PathBuf, to: &PathBuf) {
+    println!(
+        "sending with: cp '{}' '{}'",
+        img.to_str().unwrap(),
+        to.to_str().unwrap()
+    );
 
-pub fn print_pic(img: &PathBuf) {
-    //send_picture(img);
+    Command::new("cp")
+        .arg(img.to_str().unwrap())
+        .arg(to.to_str().unwrap())
+        .spawn()
+        .unwrap()
+        .wait();
+}
 
+pub fn print_pic(img: &PathBuf, to: &PathBuf) {
+    send_picture(img, to);
     for _ in 0..2 {
         buttonpress("160", "1300");
         println!("buttonpress 1");
-        thread::sleep(time::Duration::from_millis(250));
+        thread::sleep(time::Duration::from_millis(500));
     }
-    // doesnt finalize the printing for now, 2 more presses for that, new coordinates needed to
+    // doesnt finalize the printing for now, 1 more presses for that, new coordinates needed to
     // return to base state
-    for _ in 0..1 {
+    for _ in 0..2 {
         buttonpress("920", "2250");
         println!("buttonpress 2");
         thread::sleep(time::Duration::from_millis(750));
