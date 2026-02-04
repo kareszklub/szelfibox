@@ -4522,6 +4522,7 @@ version = "0.1.0"
 dependencies = [
  "axum",
  "base64 0.22.1",
+ "glob",
  "gstreamer",
  "gstreamer-app",
  "gstreamer-video",

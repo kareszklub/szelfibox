@@ -1,4 +1,5 @@
-use std::{process::Command, thread, time};
+use glob;
+use std::{fs::create_dir_all, path::PathBuf, process::Command, thread, time};
 
 fn buttonpress(x: &str, y: &str) {
     Command::new("adb")
@@ -12,11 +13,21 @@ fn buttonpress(x: &str, y: &str) {
         .wait();
 }
 
-fn send_picture(img: &str) {}
+pub fn get_phone_picture_dir() -> PathBuf {
+    let mut paths = glob::glob("/run/user/1000/gvfs/*/*").expect("No phone found! Is it mounted?");
+    let phone_path = paths
+        .next()
+        .expect("No phone found!")
+        .expect("Failed to read phone path");
+    println!("phone found at path: {:?}", phone_path.display());
+    create_dir_all(phone_path.clone().join("Pictures/szelfibox"))
+        .expect("failed to create static directory");
+    phone_path.clone().join("Pictures/szelfibox")
+}
 
-fn rm_picture(img: &String) {}
+pub fn send_picture(img: &PathBuf) {}
 
-pub fn print_pic(img: &str) {
+pub fn print_pic(img: &PathBuf) {
     //send_picture(img);
 
     for _ in 0..2 {
@@ -32,4 +43,3 @@ pub fn print_pic(img: &str) {
         thread::sleep(time::Duration::from_millis(750));
     }
 }
-

@@ -1,7 +1,6 @@
 use std::{fs, io::Cursor, path::Path};
 
 use crate::img_utils::append_image_header;
-use crate::phone_utils::print_pic;
 use crate::scrcpy::start_camera_stream;
 use crate::{axum::run_server, buttons::run_buttons};
 
@@ -50,6 +49,12 @@ pub fn run() {
     simple_logger::init_with_level(log::Level::Info).unwrap();
 
     fs::create_dir_all(&Path::new("../static/images")).expect("failed to create static directory");
+
+    let phone_picture_dir = phone_utils::get_phone_picture_dir();
+    println!(
+        "Pictures will be stored at: {:?}",
+        phone_picture_dir.display()
+    );
 
     tauri::async_runtime::spawn(async {
         run_server().await;
