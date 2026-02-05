@@ -6,7 +6,6 @@
 
     let videoElement: HTMLVideoElement;
     let jmuxer: any;
-    let unlisten: () => void;
 
     /**
      * Captures the current frame and returns both raw ImageData and a displayable Blob URL.
@@ -54,35 +53,27 @@
     }
 
     onMount(async () => {
-        // Initialize JMuxer attached to the video element
         jmuxer = new JMuxer({
             node: videoElement,
             mode: "video",
-            flushingTime: 0, // CRITICAL: Tell JMuxer to push to the video element immediately
-            // maxDelay: 100, // If the delay exceeds 100ms, drop old frames
+            flushingTime: 1,
+            maxDelay: 200,
             fps: 30,
-            debug: false,
+            debug: true,
         });
 
-        // Listen for binary data from Rust
-        unlisten = await listen<number[]>("video-packet", (event) => {
-            // console.log("Received bytes:", event.payload.length); // Should see numbers like 4096, 16384
-            // event.payload is the raw byte array
-            // JMuxer expects a Uint8Array
-            const data = new Uint8Array(event.payload);
+        const response = await fetch("http://localhost:5678/stream");
+        const reader = response.body?.getReader();
+        if (!reader) return;
 
-            // Feed the H.264 chunk to the muxer
-            jmuxer.feed({
-                video: data,
-            });
-        });
-
-        // Tell Rust to start the process
-        invoke("start_camera_stream");
+        while (true) {
+            const { done, value } = await reader.read();
+            if (done) break;
+            jmuxer.feed({ video: value });
+        }
     });
 
     onDestroy(() => {
-        if (unlisten) unlisten();
         if (jmuxer) jmuxer.destroy();
     });
 </script>

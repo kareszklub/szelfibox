@@ -1,9 +1,11 @@
 use std::{fs, io::Cursor, path::Path};
 
+use crate::gst_cam::fetch_frame;
 use crate::img_utils::append_image_header;
 use crate::phone_utils::print_pic;
-use crate::scrcpy::start_camera_stream;
 use crate::{axum::run_server, buttons::run_buttons};
+use std::sync::{Arc, Mutex};
+use tauri::{ipc::Response, State};
 
 use base64::{prelude::BASE64_URL_SAFE_NO_PAD, Engine};
 use image::{ImageBuffer, Luma, Rgba};
@@ -16,6 +18,11 @@ mod gst_cam;
 mod img_utils;
 mod phone_utils;
 mod scrcpy;
+
+#[derive(Default)]
+pub struct CameraState {
+    pub latest_frame: Arc<Mutex<Option<Vec<u8>>>>,
+}
 
 #[tauri::command]
 fn process_image(width: u32, height: u32, data: Vec<u8>) -> Vec<u8> {
@@ -55,15 +62,20 @@ pub fn run() {
         run_server().await;
     });
 
+    // tauri::async_runtime::spawn(async {
+    //     run_camera().await;
+    // });
+
     tauri::Builder::default()
         .plugin(tauri_plugin_opener::init())
+        .manage(CameraState::default())
         .setup(|app| {
-            // {
-            //     let app_handle = app.handle().clone();
-            //     std::thread::spawn(move || {
-            //         gst_cam::start_camera(app_handle);
-            //     });
-            // }
+            {
+                let app_handle = app.handle().clone();
+                std::thread::spawn(move || {
+                    gst_cam::start_camera(app_handle);
+                });
+            }
             {
                 let app_handle = app.handle().clone();
                 std::thread::spawn(|| {
@@ -73,7 +85,7 @@ pub fn run() {
 
             Ok(())
         })
-        .invoke_handler(tauri::generate_handler![process_image, start_camera_stream])
+        .invoke_handler(tauri::generate_handler![process_image, fetch_frame])
         .run(tauri::generate_context!())
         .expect("Error while running tauri application");
 }

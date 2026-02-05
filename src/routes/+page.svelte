@@ -18,10 +18,9 @@
         QrCode,
         Play,
     } from "lucide-svelte";
-    import CameraStream from "$lib/components/CameraStream.svelte";
 
     let countdown: number | null = $state(null);
-    let cameraStream: CameraStream | null = $state(null);
+    let videoCanvas: VideoCanvas | null = $state(null);
 
     onMount(async () => {
         await listen<number>("button", (event: any) => {
@@ -35,7 +34,6 @@
 
     // you get back a blob URL for the corresponding QR code
     export async function sendImage(image: ImageData): Promise<string> {
-        console.log("Preparing to send image");
         const bytes = await invoke<number[]>("process_image", {
             width: image.width,
             height: image.height,
@@ -43,7 +41,6 @@
         });
 
         const blob = new Blob([new Uint8Array(bytes)], { type: "image/png" });
-        console.log("Sent image");
         return URL.createObjectURL(blob);
     }
 
@@ -72,10 +69,8 @@
 
                     console.log("Csinálom a képet, csíz!");
                     box.freeze = true;
-                    let output = await cameraStream!.getImageData();
-                    box.imageData = output!.imageData;
-                    box.imageBlobURL = output!.blobUrl;
-                    box.qrBlobURL = await sendImage(box.imageData!);
+                    box.imageData = videoCanvas!.getImageData();
+                    box.qrBlobURL = await sendImage(box.imageData);
                 }
             }, 1000);
         } else if (box.stage === 3) {
@@ -105,7 +100,6 @@
             box.stage = 4;
         } else if (box.stage === 4) {
             box.imageData = null;
-            box.imageBlobURL = null;
             box.stage = 1;
         } else {
             throw new Error("Unreachable");
@@ -184,14 +178,11 @@
                             <div
                                 class="relative rounded-lg overflow-hidden border-4 border-muted"
                             >
-                                {#if box.stage === 4}
-                                    <img
-                                        src={box.imageBlobURL}
-                                        alt="Captured"
-                                    />
-                                {:else}
-                                    <CameraStream bind:this={cameraStream} />
-                                {/if}
+                                <VideoCanvas
+                                    bind:this={videoCanvas}
+                                    width={1920}
+                                    height={1440}
+                                />
                             </div>
                         {/if}
                     </div>
