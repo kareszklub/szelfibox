@@ -55,7 +55,7 @@ pub fn print_pic(img: &PathBuf, to: &PathBuf) {
         (160, 700, 1, 500),
         (160, 1300, 1, 500),
         (1000, 2380, 3, 500),
-        (300, 1450, 1, 5000),
+        (300, 1450, 1, 15000),
     ];
 
     for (x, y, repeat, wait) in positions {

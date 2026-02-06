@@ -218,8 +218,8 @@
                                 {:else}
                                     <VideoCanvas
                                         bind:this={videoCanvas}
-                                        width={1280}
-                                        height={720}
+                                        width={720}
+                                        height={480}
                                     />
                                 {/if}
                             </div>
