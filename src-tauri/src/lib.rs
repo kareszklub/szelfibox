@@ -15,7 +15,7 @@ pub static PREVIEW_WIDTH: u32 = 1280;
 pub static PREVIEW_HEIGHT: u32 = 720;
 pub static WIDTH: u32 = 3840;
 pub static HEIGHT: u32 = 2160;
-pub static VIDEO_DEVICE: &str = "/dev/video4";
+pub static VIDEO_DEVICE: &str = "/dev/video0";
 
 #[derive(Default)]
 pub struct CameraState {
