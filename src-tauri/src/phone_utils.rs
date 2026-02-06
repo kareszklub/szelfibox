@@ -1,4 +1,5 @@
 use glob;
+use log::error;
 use std::{fs::create_dir_all, path::PathBuf, process::Command, thread, time};
 
 fn buttonpress(x: &str, y: &str) {
@@ -13,16 +14,21 @@ fn buttonpress(x: &str, y: &str) {
         .wait();
 }
 
-pub fn get_phone_picture_dir() -> PathBuf {
+pub fn get_phone_picture_dir() -> Option<PathBuf> {
     let mut paths = glob::glob("/run/user/1000/gvfs/*/*").expect("No phone found! Is it mounted?");
-    let phone_path = paths
-        .next()
-        .expect("No phone found!")
-        .expect("Failed to read phone path");
+
+    let phone_path = match paths.next() {
+        Some(paths) => paths,
+        None => {
+            error!("No phone path found. Printing will not be available.");
+            return None;
+        }
+    }
+    .expect("Failed to read phone path");
     println!("phone found at path: {:?}", phone_path.display());
     create_dir_all(phone_path.clone().join("Pictures/szelfibox"))
         .expect("failed to create static directory");
-    phone_path.join("Pictures/szelfibox")
+    Some(phone_path.join("Pictures/szelfibox"))
 }
 
 fn send_picture(img: &PathBuf, to: &PathBuf) {

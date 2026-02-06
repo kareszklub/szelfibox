@@ -32,17 +32,34 @@
         });
     });
 
-    // you get back a blob URL for the corresponding QR code
-    export async function sendImage(image: ImageData): Promise<string> {
-        const bytes = await invoke<number[]>("process_image", {
-            width: image.width,
-            height: image.height,
-            data: Array.from(image.data),
-        });
+    async function takePicture() {
+        const responseBuffer = await invoke<ArrayBuffer>("take_picture");
 
-        const blob = new Blob([new Uint8Array(bytes)], { type: "image/png" });
-        return URL.createObjectURL(blob);
+        const view = new DataView(responseBuffer);
+
+        const imgLen = view.getUint32(0, true);
+
+        const mainStart = 4;
+        const qrStart = mainStart + imgLen;
+
+        const qrPixels = new Uint8Array(responseBuffer.slice(qrStart));
+        const qrBlob = new Blob([qrPixels], { type: "image/png" });
+        box.qrBlobURL = URL.createObjectURL(qrBlob);
+
+        const imageBlob = new Blob(
+            [new Uint8Array(responseBuffer.slice(mainStart, qrStart))],
+            { type: "image/png" },
+        );
+        box.imageBlobURL = URL.createObjectURL(imageBlob);
     }
+
+    const revokeURLS = () => {
+        URL.revokeObjectURL(box.imageBlobURL!);
+        URL.revokeObjectURL(box.qrBlobURL!);
+        box.imageBlobURL = null;
+        box.qrBlobURL = null;
+        box.freeze = false;
+    };
 
     const onKeyDown = (e: KeyboardEvent) => {
         if (e.key === "a") {
@@ -64,21 +81,22 @@
                 if (!countdown) return;
                 countdown--;
                 if (countdown === 0) {
-                    countdown = null;
                     clearInterval(clear);
+                    countdown = null;
 
                     console.log("Csinálom a képet, csíz!");
+
+                    await takePicture();
                     box.freeze = true;
-                    box.imageData = videoCanvas!.getImageData();
-                    box.qrBlobURL = await sendImage(box.imageData);
                 }
             }, 1000);
         } else if (box.stage === 3) {
             box.stage = 4;
         } else if (box.stage === 4) {
             console.log("Indítom a nyomtatást");
-            box.imageData = null;
-            URL.revokeObjectURL(box.qrBlobURL!);
+
+            revokeURLS();
+
             box.stage = 1;
         } else {
             throw new Error("Unreachable");
@@ -91,7 +109,7 @@
         if (box.stage === 1) {
             box.stage = 2;
         } else if (box.stage === 2) {
-            if (!box.imageData) {
+            if (!box.imageBlobURL) {
                 console.error("Először csinálj egy képet!");
                 return;
             }
@@ -99,7 +117,7 @@
         } else if (box.stage === 3) {
             box.stage = 4;
         } else if (box.stage === 4) {
-            box.imageData = null;
+            revokeURLS();
             box.stage = 1;
         } else {
             throw new Error("Unreachable");
@@ -178,11 +196,18 @@
                             <div
                                 class="relative rounded-lg overflow-hidden border-4 border-muted"
                             >
-                                <VideoCanvas
-                                    bind:this={videoCanvas}
-                                    width={1920}
-                                    height={1440}
-                                />
+                                {#if box.freeze}
+                                    <img
+                                        src={box.imageBlobURL}
+                                        alt="Taken pic"
+                                    />
+                                {:else}
+                                    <VideoCanvas
+                                        bind:this={videoCanvas}
+                                        width={1920}
+                                        height={1440}
+                                    />
+                                {/if}
                             </div>
                         {/if}
                     </div>

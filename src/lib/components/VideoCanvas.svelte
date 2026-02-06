@@ -56,7 +56,6 @@
             unlisten();
             unlisten = null;
         }
-        box.freeze = false;
     });
 </script>
 
@@ -66,7 +65,7 @@
     canvas {
         width: 100%;
         max-width: 800px;
-        /* image-rendering: pixelated; Keeps it sharp if scaling */
+        image-rendering: pixelated;
         background: #000;
     }
 </style>
