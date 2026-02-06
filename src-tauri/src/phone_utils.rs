@@ -2,16 +2,17 @@ use glob;
 use log::error;
 use std::{fs::create_dir_all, path::PathBuf, process::Command, thread, time};
 
-fn buttonpress(x: &str, y: &str) {
+fn buttonpress(x: i32, y: i32) {
     Command::new("adb")
         .arg("shell")
         .arg("input")
         .arg("tap")
-        .arg(x)
-        .arg(y)
+        .arg(x.to_string())
+        .arg(y.to_string())
         .spawn()
         .expect("failed to press on screen")
-        .wait();
+        .wait()
+        .unwrap();
 }
 
 pub fn get_phone_picture_dir() -> Option<PathBuf> {
@@ -43,21 +44,24 @@ fn send_picture(img: &PathBuf, to: &PathBuf) {
         .arg(to.to_str().unwrap())
         .spawn()
         .unwrap()
-        .wait();
+        .wait()
+        .unwrap();
 }
 
 pub fn print_pic(img: &PathBuf, to: &PathBuf) {
     send_picture(img, to);
-    for _ in 0..2 {
-        buttonpress("160", "1300");
-        println!("buttonpress 1");
-        thread::sleep(time::Duration::from_millis(500));
-    }
-    // doesnt finalize the printing for now, 1 more presses for that, new coordinates needed to
-    // return to base state
-    for _ in 0..3 {
-        buttonpress("920", "2250");
-        println!("buttonpress 2");
-        thread::sleep(time::Duration::from_millis(750));
+
+    let positions = vec![
+        (160, 700, 1),
+        (160, 1300, 2),
+        (920, 2250, 3),
+        (300, 1450, 1),
+    ];
+
+    for (x, y, repeat) in positions {
+        for _ in 0..repeat {
+            buttonpress(x, y);
+            thread::sleep(time::Duration::from_millis(500));
+        }
     }
 }
