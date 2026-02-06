@@ -52,16 +52,16 @@ pub fn print_pic(img: &PathBuf, to: &PathBuf) {
     send_picture(img, to);
 
     let positions = vec![
-        (160, 700, 1),
-        (160, 1300, 2),
-        (920, 2250, 3),
-        (300, 1450, 1),
+        (160, 700, 1, 500),
+        (160, 1300, 2, 500),
+        (920, 2250, 3, 500),
+        (300, 1450, 1, 5000),
     ];
 
-    for (x, y, repeat) in positions {
+    for (x, y, repeat, wait) in positions {
         for _ in 0..repeat {
             buttonpress(x, y);
-            thread::sleep(time::Duration::from_millis(500));
+            thread::sleep(time::Duration::from_millis(wait));
         }
     }
 }
