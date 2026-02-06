@@ -11,13 +11,16 @@ mod gst_cam;
 mod img_utils;
 mod phone_utils;
 
-pub static WIDTH: u32 = 1920;
-pub static HEIGHT: u32 = 1440;
+pub static PREVIEW_WIDTH: u32 = 1280;
+pub static PREVIEW_HEIGHT: u32 = 720;
+pub static WIDTH: u32 = 3840;
+pub static HEIGHT: u32 = 2160;
 pub static VIDEO_DEVICE: &str = "/dev/video4";
 
 #[derive(Default)]
 pub struct CameraState {
-    pub latest_frame: Arc<Mutex<Option<Vec<u8>>>>,
+    pub latest_hd_frame: Arc<Mutex<Option<Vec<u8>>>>,
+    pub latest_preview_frame: Arc<Mutex<Option<Vec<u8>>>>,
 }
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]

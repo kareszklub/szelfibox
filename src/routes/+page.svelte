@@ -8,6 +8,7 @@
     import * as Card from "$lib/components/ui/card";
     import { Button } from "$lib/components/ui/button";
     import { Badge } from "$lib/components/ui/badge";
+    import { Spinner } from "$lib/components/ui/spinner";
 
     import {
         Camera,
@@ -33,6 +34,8 @@
     });
 
     async function takePicture() {
+        revokeURLS();
+
         const responseBuffer = await invoke<ArrayBuffer>("take_picture");
 
         const view = new DataView(responseBuffer);
@@ -54,11 +57,14 @@
     }
 
     const revokeURLS = () => {
-        URL.revokeObjectURL(box.imageBlobURL!);
-        URL.revokeObjectURL(box.qrBlobURL!);
-        box.imageBlobURL = null;
-        box.qrBlobURL = null;
-        box.freeze = false;
+        if (box.imageBlobURL) {
+            URL.revokeObjectURL(box.imageBlobURL);
+            box.imageBlobURL = null;
+        }
+        if (box.qrBlobURL) {
+            URL.revokeObjectURL(box.qrBlobURL);
+            box.qrBlobURL = null;
+        }
     };
 
     const onKeyDown = (e: KeyboardEvent) => {
@@ -86,8 +92,8 @@
 
                     console.log("Csinálom a képet, csíz!");
 
-                    await takePicture();
                     box.freeze = true;
+                    await takePicture();
                 }
             }, 1000);
         } else if (box.stage === 3) {
@@ -96,6 +102,7 @@
             console.log("Indítom a nyomtatást");
 
             revokeURLS();
+            box.freeze = false;
 
             box.stage = 1;
         } else {
@@ -118,6 +125,8 @@
             box.stage = 4;
         } else if (box.stage === 4) {
             revokeURLS();
+            box.freeze = false;
+
             box.stage = 1;
         } else {
             throw new Error("Unreachable");
@@ -197,15 +206,19 @@
                                 class="relative rounded-lg overflow-hidden border-4 border-muted"
                             >
                                 {#if box.freeze}
-                                    <img
-                                        src={box.imageBlobURL}
-                                        alt="Taken pic"
-                                    />
+                                    {#if box.imageBlobURL}
+                                        <img
+                                            src={box.imageBlobURL}
+                                            alt="Taken pic"
+                                        />
+                                    {:else}
+                                        <Spinner class="size-16" />
+                                    {/if}
                                 {:else}
                                     <VideoCanvas
                                         bind:this={videoCanvas}
-                                        width={1920}
-                                        height={1440}
+                                        width={1280}
+                                        height={720}
                                     />
                                 {/if}
                             </div>
