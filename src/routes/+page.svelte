@@ -75,7 +75,7 @@
         }
     };
 
-    const onLeftButtonDown = () => {
+    const onLeftButtonDown = async () => {
         if (countdown) return;
         console.log("[Left] button pressed");
         if (box.stage === 1) {
@@ -100,6 +100,7 @@
             box.stage = 4;
         } else if (box.stage === 4) {
             console.log("Indítom a nyomtatást");
+            await invoke("print_picture");
 
             revokeURLS();
             box.freeze = false;

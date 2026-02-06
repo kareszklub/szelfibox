@@ -6,12 +6,13 @@ use gstreamer_app as gst_app;
 use image::{ImageBuffer, Luma, Rgba};
 use qrcode::QrCode;
 use std::io::Cursor;
+use std::path::PathBuf;
 use xxhash_rust::xxh3::xxh3_128;
 
 use tauri::{ipc::Response, Emitter, Manager, State};
 
-use crate::img_utils::append_image_header;
-use crate::{CameraState, HEIGHT, PREVIEW_HEIGHT, PREVIEW_WIDTH, VIDEO_DEVICE, WIDTH};
+use crate::img_utils::{append_image_header, get_newest_file};
+use crate::{phone_utils, CameraState, HEIGHT, PREVIEW_HEIGHT, PREVIEW_WIDTH, VIDEO_DEVICE, WIDTH};
 
 static CROP: u32 = 300;
 
@@ -173,7 +174,12 @@ pub async fn take_picture(state: State<'_, CameraState>) -> Result<Response, Str
             let mut img = ImageBuffer::<Rgba<u8>, _>::from_raw(WIDTH, HEIGHT, hd_data)
                 .expect("invalid RGBA buffer");
 
-            let img = image::imageops::crop(&mut img, CROP, 0, WIDTH - 2 * CROP, HEIGHT).to_image();
+            let mut img =
+                image::imageops::crop(&mut img, CROP, 0, WIDTH - 2 * CROP, HEIGHT).to_image();
+
+            let overlay = image::open("../static/overlay.png").unwrap().to_rgba8();
+
+            image::imageops::overlay(&mut img, &overlay, 0, 0);
 
             let path = format!("../static/images/{}.png", hash_clone);
             img.save_with_format(path, image::ImageFormat::Png).ok();
@@ -194,4 +200,16 @@ pub async fn take_picture(state: State<'_, CameraState>) -> Result<Response, Str
     })
     .await
     .map_err(|e| e.to_string())?
+}
+
+#[tauri::command]
+pub fn print_picture() {
+    std::thread::spawn(|| {
+        let phone_picture_dir = phone_utils::get_phone_picture_dir().unwrap();
+        let picture_dir = PathBuf::from("../static/images");
+
+        let picture_dir = get_newest_file(&picture_dir).unwrap();
+
+        phone_utils::print_pic(&picture_dir, &phone_picture_dir);
+    });
 }

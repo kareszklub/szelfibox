@@ -55,7 +55,7 @@ pub fn print_pic(img: &PathBuf, to: &PathBuf) {
     }
     // doesnt finalize the printing for now, 1 more presses for that, new coordinates needed to
     // return to base state
-    for _ in 0..2 {
+    for _ in 0..3 {
         buttonpress("920", "2250");
         println!("buttonpress 2");
         thread::sleep(time::Duration::from_millis(750));

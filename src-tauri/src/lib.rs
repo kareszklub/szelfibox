@@ -1,7 +1,7 @@
 use std::path::PathBuf;
 use std::{fs, path::Path};
 
-use crate::gst_cam::{fetch_frame, take_picture};
+use crate::gst_cam::{fetch_frame, print_picture, take_picture};
 use crate::{axum::run_server, buttons::run_buttons};
 use std::sync::{Arc, Mutex};
 
@@ -29,20 +29,6 @@ pub fn run() {
 
     fs::create_dir_all(&Path::new("../static/images")).expect("failed to create static directory");
 
-    let phone_picture_dir = phone_utils::get_phone_picture_dir();
-    if let Some(phone_picture_dir) = phone_picture_dir {
-        let pi_picture_dir = PathBuf::from("../static/images");
-
-        println!(
-            "Pictures will be stored at: {:?}",
-            phone_picture_dir.display()
-        );
-
-        let test_pic = pi_picture_dir.join("test.jpg");
-
-        // phone_utils::print_pic(&test_pic, &phone_picture_dir);
-    }
-
     tauri::async_runtime::spawn(async {
         run_server().await;
     });
@@ -66,7 +52,11 @@ pub fn run() {
 
             Ok(())
         })
-        .invoke_handler(tauri::generate_handler![take_picture, fetch_frame])
+        .invoke_handler(tauri::generate_handler![
+            take_picture,
+            fetch_frame,
+            print_picture
+        ])
         .run(tauri::generate_context!())
         .expect("Error while running tauri application");
 }
