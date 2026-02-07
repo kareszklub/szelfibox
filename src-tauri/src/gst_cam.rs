@@ -4,25 +4,46 @@ use gstreamer as gst;
 use gstreamer::prelude::*;
 use gstreamer_app as gst_app;
 use image::{ImageBuffer, Luma, Rgba};
+use log::error;
 use qrcode::QrCode;
 use std::io::Cursor;
 use std::path::PathBuf;
+use std::process::Command;
+use std::time::Duration;
 use xxhash_rust::xxh3::xxh3_128;
 
 use tauri::{ipc::Response, Emitter, Manager, State};
 
-use crate::img_utils::{append_image_header, get_newest_file};
-use crate::{phone_utils, CameraState, HEIGHT, PREVIEW_HEIGHT, PREVIEW_WIDTH, VIDEO_DEVICE, WIDTH};
+use crate::img_utils::get_newest_file;
+use crate::{
+    phone_utils, CameraState, FPS, HEIGHT, PREVIEW_HEIGHT, PREVIEW_WIDTH, VIDEO_DEVICE, WIDTH,
+};
 
 static CROP: u32 = 300;
 
 pub fn start_camera(app: tauri::AppHandle) {
     gst::init().unwrap();
 
-    // We define the pipeline with a 'tee' to split the source.
-    // 'queue' is essential after a tee to create a new thread for each branch.
-    // Branch 1: Main high-res stream (renamed sink to 'main_sink')
-    // Branch 2: Preview stream scaled to 1280x960 (named 'preview_sink')
+    // Start scrcpy on a separate thread
+    std::thread::spawn(|| {
+        let status = Command::new("scrcpy")
+            .arg("--video-source=camera")
+            .arg(&format!("--v4l2-sink={}", VIDEO_DEVICE))
+            .arg(&format!("--camera-size={}x{}", WIDTH, HEIGHT))
+            .arg(&format!("--camera-fps={}", FPS))
+            .arg("--no-window")
+            .arg("--no-audio")
+            .status()
+            .unwrap();
+
+        if !status.success() {
+            error!("scrcpy instance failed with: {}", status);
+        }
+    });
+
+    // To let the scrcpy instance start
+    std::thread::sleep(Duration::from_secs(3));
+
     let pipeline = gstreamer::parse::launch(&format!(
         "v4l2src device={} ! tee name=t \
          t. ! queue ! videoconvert ! video/x-raw,format=RGBA,width={},height={} ! appsink name=main_sink \
@@ -33,7 +54,6 @@ pub fn start_camera(app: tauri::AppHandle) {
 
     let pipeline = pipeline.downcast::<gst::Pipeline>().unwrap();
 
-    // --- 1. Handle Main 12MP Stream ---
     let main_sink = pipeline
         .by_name("main_sink")
         .expect("Could not find main_sink")
@@ -64,7 +84,6 @@ pub fn start_camera(app: tauri::AppHandle) {
             .build(),
     );
 
-    // --- 2. Handle Preview Stream (1280x960) ---
     let preview_sink = pipeline
         .by_name("preview_sink")
         .expect("Could not find preview_sink")
@@ -74,7 +93,6 @@ pub fn start_camera(app: tauri::AppHandle) {
     preview_sink.set_callbacks(
         gst_app::AppSinkCallbacks::builder()
             .new_sample(move |sink| {
-                // Pull the sample to keep the pipeline flowing
                 let sample = sink.pull_sample().map_err(|_| gst::FlowError::Eos)?;
                 let buffer = sample.buffer().ok_or(gst::FlowError::Error)?;
                 let map = buffer.map_readable().map_err(|_| gst::FlowError::Error)?;
@@ -90,7 +108,6 @@ pub fn start_camera(app: tauri::AppHandle) {
             .build(),
     );
 
-    // --- Start Pipeline ---
     pipeline.set_state(gst::State::Playing).unwrap();
 
     let bus = pipeline.bus().unwrap();
@@ -147,7 +164,6 @@ pub async fn take_picture(state: State<'_, CameraState>) -> Result<Response, Str
         frame_lock.as_ref().cloned().ok_or("No frame available")?
     };
 
-    // 1. Move heavy processing to a blocking thread to keep the executor free
     tauri::async_runtime::spawn_blocking(move || {
         let hash128 = xxh3_128(&preview_data);
         let mut hash = BASE64_URL_SAFE_NO_PAD.encode(hash128.to_be_bytes());
@@ -157,11 +173,10 @@ pub async fn take_picture(state: State<'_, CameraState>) -> Result<Response, Str
             ImageBuffer::<Rgba<u8>, _>::from_raw(PREVIEW_WIDTH, PREVIEW_HEIGHT, preview_data)
                 .expect("invalid RGBA buffer");
 
-        // 2. Use Fast Compression for the Preview
         let mut img_png_bytes = Vec::new();
         let encoder = image::codecs::png::PngEncoder::new_with_quality(
             &mut img_png_bytes,
-            image::codecs::png::CompressionType::Fast, // This is the speed boost!
+            image::codecs::png::CompressionType::Fast,
             image::codecs::png::FilterType::NoFilter,
         );
         preview_img
@@ -169,7 +184,6 @@ pub async fn take_picture(state: State<'_, CameraState>) -> Result<Response, Str
             .expect("Failed to encode PNG");
 
         let hash_clone = hash.clone();
-        // 3. Save to disk in background (Don't await this for the response)
         std::thread::spawn(move || {
             let mut img = ImageBuffer::<Rgba<u8>, _>::from_raw(WIDTH, HEIGHT, hd_data)
                 .expect("invalid RGBA buffer");
@@ -185,8 +199,7 @@ pub async fn take_picture(state: State<'_, CameraState>) -> Result<Response, Str
             img.save_with_format(path, image::ImageFormat::Png).ok();
         });
 
-        // 4. QR Generation
-        let qr_text = format!("http://0.0.0.0:8000/{}", hash);
+        let qr_text = format!("https://box.kende.dev/{}", hash);
         let qr = QrCode::new(qr_text.as_bytes()).map_err(|e| e.to_string())?;
         let qr_image: ImageBuffer<Luma<u8>, Vec<u8>> =
             qr.render::<Luma<u8>>().min_dimensions(256, 256).build();
