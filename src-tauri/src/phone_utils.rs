@@ -60,8 +60,8 @@ pub fn print_pic(img: &PathBuf, to: &PathBuf) {
 
     for (x, y, repeat, wait) in positions {
         for _ in 0..repeat {
-            buttonpress(x, y);
             thread::sleep(time::Duration::from_millis(wait));
+            buttonpress(x, y);
         }
     }
 }
