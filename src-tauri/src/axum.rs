@@ -24,7 +24,8 @@ pub async fn run_server() {
 
 async fn serve_jpg(Path(name): Path<String>) -> Response {
     let mut path = PathBuf::from("../static/images");
-    path.push(format!("{}.png", name));
+    let filename = format!("{}.png", name);
+    path.push(&filename);
 
     if !path.exists() {
         return StatusCode::NOT_FOUND.into_response();
@@ -36,7 +37,17 @@ async fn serve_jpg(Path(name): Path<String>) -> Response {
             if file.read_to_end(&mut buf).await.is_err() {
                 return StatusCode::INTERNAL_SERVER_ERROR.into_response();
             }
-            ([("Content-Type", "image/jpeg")], buf).into_response()
+            (
+                [
+                    ("Content-Type", "image/png"),
+                    (
+                        "Content-Disposition",
+                        &format!("attachment; filename=\"{}\"", filename),
+                    ),
+                ],
+                buf,
+            )
+                .into_response()
         }
         Err(_) => StatusCode::NOT_FOUND.into_response(),
     }
