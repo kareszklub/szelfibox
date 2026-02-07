@@ -1,5 +1,6 @@
-use std::path::PathBuf;
 use std::{fs, path::Path};
+
+use dotenv_codegen::dotenv;
 
 use crate::gst_cam::{fetch_frame, print_picture, take_picture};
 use crate::{axum::run_server, buttons::run_buttons};
@@ -15,7 +16,8 @@ pub static PREVIEW_WIDTH: u32 = 720;
 pub static PREVIEW_HEIGHT: u32 = 480;
 pub static WIDTH: u32 = 3840;
 pub static HEIGHT: u32 = 2160;
-pub static VIDEO_DEVICE: &str = "/dev/video4";
+pub static VIDEO_DEVICE: &str = dotenv!("VIDEO_DEVICE");
+pub static FPS: &str = dotenv!("FPS");
 
 #[derive(Default)]
 pub struct CameraState {
