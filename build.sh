@@ -11,7 +11,7 @@ else
     echo "${MODULE} is already loaded."
 fi
 
-if [ "$1" == "rebuild" ]; then
+if [[ "$1" == "rebuild" || ! -f "./src-tauri/target/release/szelfibox" ]]; then
     echo "Rebuilding now..."
     npm run tauri build -- --no-bundle
 else
