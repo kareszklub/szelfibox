@@ -44,14 +44,19 @@ pub fn start_camera(app: tauri::AppHandle) {
     // To let the scrcpy instance start
     std::thread::sleep(Duration::from_secs(3));
 
-    let pipeline = gstreamer::parse::launch(&format!(
+    let pipeline_str = format!(
         "v4l2src device={} ! tee name=t \
-         t. ! queue ! videoconvert ! video/x-raw,format=RGBA,width={},height={} ! appsink name=main_sink \
-         t. ! queue ! videoconvert ! videoscale ! video/x-raw,format=RGBA,width={},height={} ! appsink name=preview_sink",
+         t. ! queue max-size-buffers=1 leaky=downstream \
+            ! valve name=snapshot_valve drop=true \
+            ! videoconvert ! video/x-raw,format=RGBA,width={},height={} \
+            ! appsink name=main_sink async=false sync=false max-buffers=1 drop=true \
+         t. ! queue \
+            ! videoconvert ! videoscale ! video/x-raw,format=RGBA,width={},height={} \
+            ! appsink name=preview_sink async=false sync=false max-buffers=1 drop=true",
         VIDEO_DEVICE, WIDTH, HEIGHT, PREVIEW_WIDTH, PREVIEW_HEIGHT
-    ))
-    .unwrap();
+    );
 
+    let pipeline = gstreamer::parse::launch(&pipeline_str).unwrap();
     let pipeline = pipeline.downcast::<gst::Pipeline>().unwrap();
 
     let main_sink = pipeline
@@ -60,29 +65,13 @@ pub fn start_camera(app: tauri::AppHandle) {
         .downcast::<gst_app::AppSink>()
         .unwrap();
 
-    let latest_preview_frame = app.state::<CameraState>().latest_preview_frame.clone();
-    let latest_hd_frame = app.state::<CameraState>().latest_hd_frame.clone();
-    let app_handle_clone = app.clone();
+    let valve = pipeline
+        .by_name("snapshot_valve")
+        .expect("Could not find snapshot_valve");
 
-    main_sink.set_callbacks(
-        gst_app::AppSinkCallbacks::builder()
-            .new_sample(move |sink| {
-                let sample = sink.pull_sample().map_err(|_| gst::FlowError::Eos)?;
-                let buffer = sample.buffer().ok_or(gst::FlowError::Error)?;
-                let map = buffer.map_readable().map_err(|_| gst::FlowError::Error)?;
-                let bytes = map.to_vec();
-
-                {
-                    let mut lock = latest_hd_frame.lock().unwrap();
-                    *lock = Some(bytes);
-                }
-
-                app_handle_clone.emit("new-frame-ready", ()).unwrap();
-
-                Ok(gst::FlowSuccess::Ok)
-            })
-            .build(),
-    );
+    let state = app.state::<CameraState>();
+    *state.main_sink.lock().unwrap() = Some(main_sink);
+    *state.snapshot_valve.lock().unwrap() = Some(valve);
 
     let preview_sink = pipeline
         .by_name("preview_sink")
@@ -90,19 +79,19 @@ pub fn start_camera(app: tauri::AppHandle) {
         .downcast::<gst_app::AppSink>()
         .unwrap();
 
+    let latest_preview_frame = state.latest_preview_frame.clone();
+    let app_handle_clone = app.clone();
+
     preview_sink.set_callbacks(
         gst_app::AppSinkCallbacks::builder()
             .new_sample(move |sink| {
                 let sample = sink.pull_sample().map_err(|_| gst::FlowError::Eos)?;
                 let buffer = sample.buffer().ok_or(gst::FlowError::Error)?;
                 let map = buffer.map_readable().map_err(|_| gst::FlowError::Error)?;
-                let bytes = map.to_vec();
 
-                {
-                    let mut lock = latest_preview_frame.lock().unwrap();
-                    *lock = Some(bytes);
-                }
+                *latest_preview_frame.lock().unwrap() = Some(map.to_vec());
 
+                app_handle_clone.emit("new-frame-ready", ()).unwrap();
                 Ok(gst::FlowSuccess::Ok)
             })
             .build(),
@@ -155,16 +144,36 @@ fn create_payload(image_bytes: Vec<u8>, qr_bytes: Vec<u8>) -> Response {
 
 #[tauri::command]
 pub async fn take_picture(state: State<'_, CameraState>) -> Result<Response, String> {
-    let hd_data = {
-        let mut frame_lock = state.latest_hd_frame.lock().unwrap();
-        frame_lock.take().ok_or("No frame available")?
+    let (valve, main_sink) = {
+        let v = state.snapshot_valve.lock().unwrap().clone();
+        let s = state.main_sink.lock().unwrap().clone();
+        if v.is_none() || s.is_none() {
+            return Err("Camera not started".to_string());
+        }
+        (v.unwrap(), s.unwrap())
     };
+
     let preview_data = {
         let frame_lock = state.latest_preview_frame.lock().unwrap();
-        frame_lock.as_ref().cloned().ok_or("No frame available")?
+        frame_lock
+            .as_ref()
+            .cloned()
+            .ok_or("No preview frame available")?
     };
 
     tauri::async_runtime::spawn_blocking(move || {
+        valve.set_property("drop", false);
+
+        let sample = main_sink
+            .pull_sample()
+            .map_err(|_| "Failed to pull sample")?;
+
+        valve.set_property("drop", true);
+
+        let buffer = sample.buffer().ok_or("No buffer in sample")?;
+        let map = buffer.map_readable().map_err(|_| "Buffer not readable")?;
+        let hd_data = map.to_vec();
+
         let hash128 = xxh3_128(&preview_data);
         let mut hash = BASE64_URL_SAFE_NO_PAD.encode(hash128.to_be_bytes());
         hash.truncate(32);
@@ -184,15 +193,15 @@ pub async fn take_picture(state: State<'_, CameraState>) -> Result<Response, Str
             .expect("Failed to encode PNG");
 
         let hash_clone = hash.clone();
+
+        // Save high-res image
         std::thread::spawn(move || {
             let mut img = ImageBuffer::<Rgba<u8>, _>::from_raw(WIDTH, HEIGHT, hd_data)
                 .expect("invalid RGBA buffer");
 
             let mut img =
                 image::imageops::crop(&mut img, CROP, 0, WIDTH - 2 * CROP, HEIGHT).to_image();
-
             let overlay = image::open("../static/overlay.png").unwrap().to_rgba8();
-
             image::imageops::overlay(&mut img, &overlay, 0, 0);
 
             let path = format!("../static/images/{}.png", hash_clone);
@@ -214,7 +223,6 @@ pub async fn take_picture(state: State<'_, CameraState>) -> Result<Response, Str
     .await
     .map_err(|e| e.to_string())?
 }
-
 #[tauri::command]
 pub fn print_picture() {
     std::thread::spawn(|| {

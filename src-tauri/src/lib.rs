@@ -21,8 +21,10 @@ pub static FPS: &str = dotenv!("FPS");
 
 #[derive(Default)]
 pub struct CameraState {
-    pub latest_hd_frame: Arc<Mutex<Option<Vec<u8>>>>,
     pub latest_preview_frame: Arc<Mutex<Option<Vec<u8>>>>,
+
+    pub main_sink: Arc<Mutex<Option<gstreamer_app::AppSink>>>,
+    pub snapshot_valve: Arc<Mutex<Option<gstreamer::Element>>>,
 }
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
