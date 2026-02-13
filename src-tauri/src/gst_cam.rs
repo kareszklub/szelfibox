@@ -4,7 +4,7 @@ use gstreamer as gst;
 use gstreamer::prelude::*;
 use gstreamer_app as gst_app;
 use image::{ImageBuffer, Luma, Rgba};
-use log::error;
+use log::{error, info};
 use qrcode::QrCode;
 use std::io::Cursor;
 use std::path::PathBuf;
@@ -26,23 +26,27 @@ pub fn start_camera(app: tauri::AppHandle) {
 
     // Start scrcpy on a separate thread
     std::thread::spawn(|| {
-        let status = Command::new("scrcpy")
+        let mut command = Command::new("scrcpy");
+        let command = command
             .arg("--video-source=camera")
             .arg(&format!("--v4l2-sink={}", VIDEO_DEVICE))
             .arg(&format!("--camera-size={}x{}", WIDTH, HEIGHT))
             .arg(&format!("--camera-fps={}", FPS))
             .arg("--no-window")
-            .arg("--no-audio")
-            .status()
-            .unwrap();
+            .arg("--no-audio");
 
-        if !status.success() {
-            error!("scrcpy instance failed with: {}", status);
+        loop {
+            let status = command.status().unwrap();
+            if !status.success() {
+                error!("scrcpy instance failed with: {}", status);
+                std::thread::sleep(Duration::from_secs(3));
+                info!("Restarting scrcpy instance...");
+            }
         }
     });
 
     // To let the scrcpy instance start
-    std::thread::sleep(Duration::from_secs(3));
+    std::thread::sleep(Duration::from_secs(5));
 
     let pipeline_str = format!(
         "v4l2src device={} ! tee name=t \
@@ -226,7 +230,7 @@ pub async fn take_picture(state: State<'_, CameraState>) -> Result<Response, Str
 #[tauri::command]
 pub fn print_picture() {
     std::thread::spawn(|| {
-        let phone_picture_dir = phone_utils::get_phone_picture_dir().unwrap();
+        let phone_picture_dir = phone_utils::get_phone_picture_dir();
         let picture_dir = PathBuf::from("../static/images");
 
         let picture_dir = get_newest_file(&picture_dir).unwrap();

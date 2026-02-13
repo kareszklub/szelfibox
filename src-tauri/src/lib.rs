@@ -3,6 +3,7 @@ use std::{fs, path::Path};
 use dotenv_codegen::dotenv;
 
 use crate::gst_cam::{fetch_frame, print_picture, take_picture};
+use crate::pico_buttons::run_pico_buttons;
 use crate::{axum::run_server, buttons::run_buttons};
 use std::sync::{Arc, Mutex};
 
@@ -11,6 +12,7 @@ mod buttons;
 mod gst_cam;
 mod img_utils;
 mod phone_utils;
+mod pico_buttons;
 
 pub static PREVIEW_WIDTH: u32 = 720;
 pub static PREVIEW_HEIGHT: u32 = 480;
@@ -51,6 +53,12 @@ pub fn run() {
                 let app_handle = app.handle().clone();
                 std::thread::spawn(|| {
                     run_buttons(app_handle);
+                });
+            }
+            {
+                let app_handle = app.handle().clone();
+                std::thread::spawn(|| {
+                    run_pico_buttons(app_handle);
                 });
             }
 

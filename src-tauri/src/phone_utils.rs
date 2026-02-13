@@ -1,6 +1,11 @@
 use glob;
-use log::error;
-use std::{fs::create_dir_all, path::PathBuf, process::Command, thread, time};
+use log::{error, info};
+use std::{
+    fs::create_dir_all,
+    path::{Path, PathBuf},
+    process::Command,
+    thread, time,
+};
 
 fn buttonpress(x: i32, y: i32) {
     Command::new("adb")
@@ -15,31 +20,19 @@ fn buttonpress(x: i32, y: i32) {
         .unwrap();
 }
 
-pub fn get_phone_picture_dir() -> Option<PathBuf> {
-    let mut paths = glob::glob("/run/user/1000/gvfs/*/*").expect("No phone found! Is it mounted?");
-
-    let phone_path = match paths.next() {
-        Some(paths) => paths,
-        None => {
-            error!("No phone path found. Printing will not be available.");
-            return None;
-        }
-    }
-    .expect("Failed to read phone path");
-    println!("phone found at path: {:?}", phone_path.display());
-    create_dir_all(phone_path.clone().join("Pictures/szelfibox"))
-        .expect("failed to create static directory");
-    Some(phone_path.join("Pictures/szelfibox"))
+pub fn get_phone_picture_dir() -> PathBuf {
+    Path::new("mtp:/REDMAGIC 9 Pro/Internal shared storage/Pictures/szelfibox/").to_path_buf()
 }
 
 fn send_picture(img: &PathBuf, to: &PathBuf) {
     println!(
-        "sending with: cp '{}' '{}'",
+        "sending with: kioclient cp '{}' '{}'",
         img.to_str().unwrap(),
         to.to_str().unwrap()
     );
 
-    Command::new("cp")
+    Command::new("kioclient")
+        .arg("cp")
         .arg(img.to_str().unwrap())
         .arg(to.to_str().unwrap())
         .spawn()
