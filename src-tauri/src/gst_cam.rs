@@ -49,6 +49,7 @@ pub fn start_camera(app: tauri::AppHandle) {
     std::thread::sleep(Duration::from_secs(5));
 
     let pipeline_str = format!(
+        "v4l2src device={} ! videoflip method=horizontal-flip ! tee name=t \
         "v4l2src device={} ! tee name=t \
          t. ! queue max-size-buffers=1 leaky=downstream \
             ! valve name=snapshot_valve drop=true \
