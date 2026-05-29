@@ -177,7 +177,7 @@
                     {/if}
 
                     <div
-                        class="p-2 flex justify-center items-center h-full min-h-[480px]"
+                        class="p-2 flex justify-center items-center h-full min-h-120"
                     >
                         {#if box.stage === 3}
                             <div
@@ -253,7 +253,7 @@
                 </Card.Root>
 
                 <Card.Root
-                    class="flex-grow flex flex-col justify-center bg-muted/30"
+                    class="grow flex flex-col justify-center bg-muted/30"
                 >
                     <Card.Header>
                         <Card.Title>Gombok</Card.Title>
