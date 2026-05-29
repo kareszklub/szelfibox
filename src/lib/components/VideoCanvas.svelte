@@ -59,7 +59,11 @@
     });
 </script>
 
-<canvas bind:this={canvas} {width} {height}></canvas>
+<div style="position: relative; display: inline-block;">
+    <canvas bind:this={canvas} {width} {height}></canvas>
+
+    <img src="./overlay.png" alt="overlay" />
+</div>
 
 <style>
     canvas {
@@ -67,5 +71,16 @@
         max-width: 800px;
         image-rendering: pixelated;
         background: #000;
+        /* transform: scaleX(-1); */
+    }
+    img {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        opacity: 0.7;
+        pointer-events: none;
+        object-fit: fill;
     }
 </style>
