@@ -16,7 +16,7 @@
                 "width": 800,
                 "height": 600,
                 "zoomHotkeysEnabled": true,
-                "fullscreen": true,
+                // "fullscreen": true,
                 "resizable": true
             }
         ],
