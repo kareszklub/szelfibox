@@ -13,7 +13,11 @@ fi
 
 if [[ "$1" == "rebuild" || ! -f "./src-tauri/target/release/szelfibox" ]]; then
     echo "Rebuilding now..."
-    npm run tauri build -- --no-bundle
+    if [[ "$2" == "dev" ]]; then
+        npm run tauri dev
+    else
+        npm run tauri build -- --no-bundle
+    fi
 else
     echo "No rebuilding, using latest build."
 fi
