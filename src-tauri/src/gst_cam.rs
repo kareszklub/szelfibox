@@ -50,7 +50,6 @@ pub fn start_camera(app: tauri::AppHandle) {
 
     let pipeline_str = format!(
         "v4l2src device={} ! videoflip method=horizontal-flip ! tee name=t \
-        "v4l2src device={} ! tee name=t \
          t. ! queue max-size-buffers=1 leaky=downstream \
             ! valve name=snapshot_valve drop=true \
             ! videoconvert ! video/x-raw,format=RGBA,width={},height={} \
@@ -206,7 +205,13 @@ pub async fn take_picture(state: State<'_, CameraState>) -> Result<Response, Str
 
             let mut img =
                 image::imageops::crop(&mut img, CROP, 0, WIDTH - 2 * CROP, HEIGHT).to_image();
-            let overlay = image::open("../static/overlay.png").unwrap().to_rgba8();
+            let mut overlay = image::open("../static/overlay.png").unwrap().to_rgba8();
+
+            // set to 60% opacity
+            for pixel in overlay.pixels_mut() {
+                pixel[3] = (pixel[3] as f32 * 0.6) as u8;
+            }
+
             image::imageops::overlay(&mut img, &overlay, 0, 0);
 
             let path = format!("../static/images/{}.png", hash_clone);
