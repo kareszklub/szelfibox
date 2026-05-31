@@ -15,9 +15,7 @@ use xxhash_rust::xxh3::xxh3_128;
 use tauri::{ipc::Response, Emitter, Manager, State};
 
 use crate::img_utils::get_newest_file;
-use crate::{
-    phone_utils, CameraState, FPS, HEIGHT, PREVIEW_HEIGHT, PREVIEW_WIDTH, VIDEO_DEVICE, WIDTH,
-};
+use crate::{CameraState, FPS, HEIGHT, PREVIEW_HEIGHT, PREVIEW_WIDTH, VIDEO_DEVICE, WIDTH};
 
 static CROP: u32 = 300;
 
@@ -236,11 +234,12 @@ pub async fn take_picture(state: State<'_, CameraState>) -> Result<Response, Str
 #[tauri::command]
 pub fn print_picture() {
     std::thread::spawn(|| {
-        let phone_picture_dir = phone_utils::get_phone_picture_dir();
-        let picture_dir = PathBuf::from("../static/images");
+        let picture_dir = get_newest_file(&PathBuf::from("../static/images")).unwrap();
 
-        let picture_dir = get_newest_file(&picture_dir).unwrap();
-
-        phone_utils::print_pic(&picture_dir, &phone_picture_dir);
+        // TODO: Print image command
+        Command::new("echo")
+            .arg("Starting print...")
+            .spawn()
+            .unwrap();
     });
 }
