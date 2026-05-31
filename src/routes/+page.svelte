@@ -102,10 +102,9 @@
             console.log("Indítom a nyomtatást");
             await invoke("print_picture");
 
-            revokeURLS();
-            box.freeze = false;
-
-            box.stage = 1;
+            // revokeURLS();
+            // box.freeze = false;
+            // box.stage = 1;
         } else {
             throw new Error("Unreachable");
         }
