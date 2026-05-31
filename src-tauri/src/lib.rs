@@ -11,7 +11,6 @@ mod axum;
 mod buttons;
 mod gst_cam;
 mod img_utils;
-mod phone_utils;
 mod pico_buttons;
 
 pub static PREVIEW_WIDTH: u32 = 720;
