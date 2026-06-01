@@ -237,6 +237,11 @@ pub fn print_picture() {
         let picture_dir = get_newest_file(&PathBuf::from("../static/images")).unwrap();
 
         // TODO: Print image command
+        Command::new("lp")
+            .args(["-d", "Canon_SELPHY_CP1500_direct", "-o", "landscape", "-o", "media=Postcard.Borderless"])
+            .arg(picture_dir.to_str().unwrap())
+            .spawn()
+            .unwrap();
         Command::new("echo")
             .arg("Starting print...")
             .spawn()

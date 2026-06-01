@@ -51,13 +51,13 @@ pub fn run() {
             {
                 let app_handle = app.handle().clone();
                 std::thread::spawn(|| {
-                    run_buttons(app_handle);
+                    run_pico_buttons(app_handle);
                 });
             }
             {
                 let app_handle = app.handle().clone();
                 std::thread::spawn(|| {
-                    run_pico_buttons(app_handle);
+                    run_buttons(app_handle);
                 });
             }
 
